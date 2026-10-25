@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Twitch Emote Resizer — 112x112, 56x56, 28x28 (Free, No Signup)</title>
-<meta name="description" content="Resize one image into all three Twitch emote sizes — 112, 56 and 28px — as transparent PNGs under 1 MB, plus a 320px Discord sticker. Runs in your browser.">
+<meta name="description" content="Twitch emote sizes 112/56/28 from one image, plus 7TV, BTTV, FFZ, Kick, sub badges and Discord. Transparent PNGs, file limits checked, in your browser.">
 <link rel="canonical" href="https://fuunyking44.github.io/twitch-emote-resizer/">
 <meta name="google-site-verification" content="eEVg1x7KDp1_De5K8valB13GkUjtw9JPwnJHj01XOCw" />
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -169,7 +169,7 @@
   <header>
     <div class="logo"><span class="dot"></span> Emote Resizer</div>
     <h1>Twitch emote resizer — <span>all three sizes</span>, one upload.</h1>
-    <p class="sub">Twitch asks for 112x112, 56x56 and 28x28 every single time. Drop one image here and get all three as transparent PNGs, checked against the 1 MB limit, ready to upload.</p>
+    <p class="sub">Twitch asks for 112x112, 56x56 and 28x28 every single time. Drop one image here and get all three as transparent PNGs, checked against the 1 MB limit, ready to upload. The same upload also covers Twitch sub badges, Kick, 7TV, BTTV, FFZ and Discord — switch platform below.</p>
   </header>
 
   <label id="drop" for="file">
@@ -179,8 +179,14 @@
   <input type="file" id="file" accept="image/png,image/jpeg,image/webp">
 
   <div class="tabs">
-    <button class="tab on" data-mode="twitch">Twitch emote (3 sizes)</button>
-    <button class="tab" data-mode="discord">Discord sticker (320x320)</button>
+    <button class="tab on" data-mode="twitch">Twitch emote</button>
+    <button class="tab" data-mode="badge">Twitch sub badge</button>
+    <button class="tab" data-mode="kick">Kick</button>
+    <button class="tab" data-mode="7tv">7TV</button>
+    <button class="tab" data-mode="bttv">BTTV</button>
+    <button class="tab" data-mode="ffz">FFZ</button>
+    <button class="tab" data-mode="demote">Discord emoji</button>
+    <button class="tab" data-mode="dstick">Discord sticker</button>
   </div>
 
   <div class="results card" id="results">
@@ -241,7 +247,12 @@
     </details>
   </section>
 
-  <p style="margin-top:28px;color:var(--muted);font-size:15px;line-height:1.6">Making emotes for more than Twitch? The <a href="https://fuunyking44.github.io/emote-sizes/" style="color:var(--brand)">emote and badge size reference</a> lists the upload size, display size and file limit for 7TV, BetterTTV, FrankerFaceZ, Kick and Discord — including the 25 KB sub badge limit that catches most people out.</p>
+  <div class="card" style="margin-top:26px;padding:18px 20px">
+    <strong style="display:block;font-size:16px;margin-bottom:6px">One image, eight presets</strong>
+    <p style="color:var(--muted);font-size:15px;line-height:1.6;margin:0">Twitch emotes (112/56/28) · Twitch sub badges (72/36/18, 25 KB each) · Kick (500×500, Kick generates the rest) · 7TV (128/96/64/32) · BTTV (112) · FFZ (128/64/32) · Discord emoji (128, 256 KB) · Discord stickers (320, 512 KB). Each preset enforces its own limit, because 1 MB for an emote and 25 KB for a badge are not the same problem — and the smallest size is the one that decides whether the art works.</p>
+  </div>
+
+  <p style="margin-top:20px;color:var(--muted);font-size:15px;line-height:1.6">Wondering which numbers are official and which are copied from other guides? The <a href="https://fuunyking44.github.io/emote-sizes/" style="color:var(--brand)">emote and badge size reference</a> lists every platform with its source, including two limits that most sites get wrong.</p>
 
   <footer>
     Runs entirely offline in your browser. No files are uploaded, stored or logged.<br>
@@ -253,7 +264,13 @@
 (function(){
   const MODES = {
     twitch:  { sizes:[[112,'112 x 112 — large'],[56,'56 x 56 — desktop chat'],[28,'28 x 28 — mobile chat']], limit: 1024*1024 },
-    discord: { sizes:[[320,'320 x 320 — sticker']], limit: 512*1024 }
+    badge:   { sizes:[[72,'72 x 72 — 4x'],[36,'36 x 36 — 2x'],[18,'18 x 18 — what chat renders']], limit: 25*1024 },
+    kick:    { sizes:[[500,'500 x 500 — the only upload size']], limit: 1024*1024 },
+    '7tv':   { sizes:[[128,'128 x 128 — 4x tier'],[96,'96 x 96 — 3x tier'],[64,'64 x 64 — 2x tier'],[32,'32 x 32 — 1x tier']], limit: 7*1024*1024 },
+    bttv:    { sizes:[[112,'112 x 112 — the only size needed']], limit: 1024*1024 },
+    ffz:     { sizes:[[128,'128 x 128 — 4x tier'],[64,'64 x 64 — 2x tier'],[32,'32 x 32 — 1x tier']], limit: 1024*1024 },
+    demote:  { sizes:[[128,'128 x 128 — Discord emoji']], limit: 256*1024 },
+    dstick:  { sizes:[[320,'320 x 320 — Discord sticker']], limit: 512*1024 }
   };
   let mode = 'twitch';
   let current = null;   // {img, name}
@@ -318,7 +335,12 @@
     return c;
   }
 
+  let renderSeq = 0;
+
   function render(){
+    // a fast tab switch starts a new render before the old toBlob callbacks fire;
+    // without a token the stale ones append files from the previous preset
+    const seq = ++renderSeq;
     blobs.forEach(b=> URL.revokeObjectURL(b.url));
     blobs = [];
     grid.innerHTML = '';
@@ -330,6 +352,7 @@
     cfg.sizes.forEach(([size, label])=>{
       const c = crop(img, size);
       c.toBlob(blob=>{
+        if (seq !== renderSeq) return;   // superseded by a newer render
         const url = URL.createObjectURL(blob);
         const name = `${current.name}-${size}x${size}.png`;
         blobs.push({ size, blob, url, name });
@@ -350,18 +373,24 @@
     note.innerHTML = '';
   }
 
+  function fmtBytes(n){
+    return n >= 1024*1024 ? (n/1024/1024).toFixed(1)+' MB' : Math.round(n/1024)+' KB';
+  }
+
   function checkLimits(limit){
     if (blobs.length < MODES[mode].sizes.length) return;
     const over = blobs.filter(b=> b.blob.size > limit);
-    const small = current.img.naturalWidth < Math.max(...MODES[mode].sizes.map(s=>s[0]));
+    const biggest = Math.max(...MODES[mode].sizes.map(s=>s[0]));
+    const small = current.img.naturalWidth < biggest;
     let html = '';
     if (over.length){
-      html += `<div class="note warn">${over.length} file(s) are over the ${(limit/1024/1024).toFixed(1)} MB limit. Simplify the artwork or reduce colour noise, then try again.</div>`;
+      const isAre = over.length > 1 ? 'files are' : 'file is';
+      html += `<div class="note warn">${over.length} ${isAre} over the ${fmtBytes(limit)} limit for this platform. Reduce the number of colours or simplify the line work — busy detail both blurs at small sizes and compresses worse.</div>`;
     } else {
-      html += `<div class="note ok">All files are under ${(limit/1024/1024).toFixed(1)} MB and have a transparent background. Ready to upload.</div>`;
+      html += `<div class="note ok">Every output is under the ${fmtBytes(limit)} limit. Judge the smallest one, not the largest — that is what chat renders most of the time.</div>`;
     }
     if (small){
-      html += `<div class="note warn">Your source is smaller than ${Math.max(...MODES[mode].sizes.map(s=>s[0]))} px, so the output was upscaled and may look soft. Start from a larger image if you can.</div>`;
+      html += `<div class="note warn">Your source is smaller than ${biggest} px, so the output was upscaled and may look soft. Start from a larger image if you can.</div>`;
     }
     note.innerHTML = html;
   }
