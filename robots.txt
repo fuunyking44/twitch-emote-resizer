@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://twitch-emote-resizer.app.workbuddy.host/sitemap.xml
+Sitemap: https://fuunyking44.github.io/twitch-emote-resizer/sitemap.xml
