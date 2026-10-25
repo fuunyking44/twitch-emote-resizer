@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://twitch-emote-resizer.app.workbuddy.host/sitemap.xml

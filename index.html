@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Twitch Emote Resizer — 112x112, 56x56, 28x28 (Free, No Signup)</title>
+<meta name="description" content="Resize an image into all three Twitch emote sizes at once — 112x112, 56x56 and 28x28 — as transparent PNGs under 1 MB, ready to upload. Also makes Discord stickers at 320x320. Runs in your browser, nothing is uploaded to a server.">
+<link rel="canonical" href="https://twitch-emote-resizer.app.workbuddy.host/">
+<meta property="og:title" content="Twitch Emote Resizer — all three sizes in one click">
+<meta property="og:description" content="Upload once, get 112x112, 56x56 and 28x28 transparent PNGs ready for Twitch. Free, no signup, runs locally in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://twitch-emote-resizer.app.workbuddy.host/">
+<meta name="twitter:card" content="summary">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Twitch Emote Resizer",
+  "url": "https://twitch-emote-resizer.app.workbuddy.host/",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Any (runs in the browser)",
+  "browserRequirements": "Requires JavaScript",
+  "description": "Resize one image into all three Twitch emote sizes — 112x112, 56x56 and 28x28 — as transparent PNGs under 1 MB. Also generates Discord stickers at 320x320.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "112x112, 56x56 and 28x28 Twitch emote sizes in one pass",
+    "Transparent PNG output preserved",
+    "1 MB per-file size check before download",
+    "Discord sticker 320x320 tab",
+    "100% client-side, no upload to any server"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What size should a Twitch emote be?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Twitch requires three sizes for every emote: 112x112 px, 56x56 px and 28x28 px. All three must be PNG files, each under 1 MB, with a transparent background. You upload all three at the same time when you create the emote."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does this tool upload my image anywhere?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The resizing happens in your browser using the canvas API. Your image never leaves your device and nothing is stored."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What image format should I start with?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "PNG with a transparent background gives the best result, because Twitch shows emotes on both light and dark chat themes. JPG and WebP also work, but edges will be filled with a solid colour instead of being transparent."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does my emote look blurry?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Enlarging a small image always loses sharpness. Start from a source image of at least 112x112 px, ideally 224x224 or larger, so the three sizes are downscaled rather than stretched."
+      }
+    }
+  ]
+}
+</script>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#14131a; --muted:#5f5b6b; --line:#e6e4ee;
+    --brand:#7c3aed; --brand-soft:#f3eeff; --ok:#0f8a5f; --warn:#b4530a;
+    --card:#ffffff; --shadow:0 1px 2px rgba(20,19,26,.06),0 8px 24px rgba(20,19,26,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f0e14; --fg:#f2f0f7; --muted:#a29dae; --line:#26232f;
+           --brand:#a678ff; --brand-soft:#1d1730; --card:#17151f;
+           --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3); }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  header{padding:28px 0 8px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em}
+  .dot{width:22px;height:22px;border-radius:7px;background:var(--brand);display:inline-block}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.2;letter-spacing:-.02em;margin:22px 0 10px}
+  h1 span{color:var(--brand)}
+  .sub{color:var(--muted);margin:0 0 26px;font-size:17px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  #drop{
+    display:block;padding:44px 24px;text-align:center;cursor:pointer;
+    border:2px dashed var(--line);border-radius:16px;transition:.15s;background:var(--card);
+  }
+  #drop:hover,#drop.over{border-color:var(--brand);background:var(--brand-soft)}
+  #drop strong{display:block;font-size:17px;margin-bottom:6px}
+  #drop small{color:var(--muted)}
+  input[type=file]{display:none}
+  .tabs{display:flex;gap:8px;margin:22px 0 14px;flex-wrap:wrap}
+  .tab{
+    padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;
+    color:var(--muted);font-size:14px;cursor:pointer;font-weight:600;
+  }
+  .tab.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .results{display:none;margin-top:22px}
+  .results.on{display:block}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,192px));justify-content:center;gap:14px;margin-top:14px}
+  .item{padding:16px;text-align:center}
+  .item .prev{
+    width:100%;aspect-ratio:1;border-radius:10px;margin-bottom:10px;
+    background-color:#fff;
+    background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);
+    background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .item .prev img{max-width:100%;max-height:100%;image-rendering:auto}
+  .item .name{font-weight:700;font-size:14px}
+  .item .meta{color:var(--muted);font-size:12.5px;margin:3px 0 10px}
+  a.dl{
+    display:inline-block;padding:7px 14px;border-radius:9px;background:var(--brand);color:#fff;
+    text-decoration:none;font-size:13.5px;font-weight:600;
+  }
+  a.dl:hover{filter:brightness(.92)}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px}
+  button.ghost{
+    padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:transparent;
+    color:var(--fg);font-size:14px;font-weight:600;cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--brand);color:var(--brand)}
+  .note{margin-top:14px;font-size:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--line)}
+  .note.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+  .note.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+  section{margin:46px 0}
+  h2{font-size:21px;letter-spacing:-.01em;margin:0 0 12px}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{color:var(--muted);margin:0 0 14px}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;margin:8px 0 6px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{font-weight:600;color:var(--fg)}
+  td{color:var(--muted)}
+  code{background:var(--brand-soft);color:var(--brand);padding:1px 6px;border-radius:5px;font-size:.9em}
+  ol{color:var(--muted);padding-left:20px}
+  ol li{margin-bottom:8px}
+  details{border-bottom:1px solid var(--line);padding:14px 0}
+  summary{cursor:pointer;font-weight:600;color:var(--fg)}
+  details p{margin:10px 0 0}
+  footer{padding:36px 0 60px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--line);margin-top:50px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo"><span class="dot"></span> Emote Resizer</div>
+    <h1>Twitch emote resizer — <span>all three sizes</span>, one upload.</h1>
+    <p class="sub">Twitch asks for 112x112, 56x56 and 28x28 every single time. Drop one image here and get all three as transparent PNGs, checked against the 1 MB limit, ready to upload.</p>
+  </header>
+
+  <label id="drop" for="file">
+    <strong>Drop your image here, or click to choose</strong>
+    <small>PNG works best (keeps transparency). JPG and WebP also fine. Nothing leaves your browser.</small>
+  </label>
+  <input type="file" id="file" accept="image/png,image/jpeg,image/webp">
+
+  <div class="tabs">
+    <button class="tab on" data-mode="twitch">Twitch emote (3 sizes)</button>
+    <button class="tab" data-mode="discord">Discord sticker (320x320)</button>
+  </div>
+
+  <div class="results card" id="results">
+    <div style="padding:18px 18px 0">
+      <div id="srcinfo" class="meta" style="color:var(--muted);font-size:14px"></div>
+    </div>
+    <div class="grid" id="grid" style="padding:0 18px"></div>
+    <div style="padding:0 18px 18px">
+      <div class="bar">
+        <button class="ghost" id="all">Download all</button>
+        <button class="ghost" id="again">Choose another image</button>
+      </div>
+      <div id="note"></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>What sizes does Twitch actually require?</h2>
+    <p>Every Twitch emote needs three files, uploaded together. If one size is missing or over the limit, the upload fails — which is why most people end up resizing the same image three times.</p>
+    <table>
+      <thead><tr><th>File</th><th>Size</th><th>Where it shows</th></tr></thead>
+      <tbody>
+        <tr><td>Large</td><td><code>112 × 112</code></td><td>Emote picker, channel page, hover cards</td></tr>
+        <tr><td>Medium</td><td><code>56 × 56</code></td><td>Chat on desktop</td></tr>
+        <tr><td>Small</td><td><code>28 × 28</code></td><td>Chat on mobile and in compact mode</td></tr>
+      </tbody>
+    </table>
+    <p>Format must be <strong>PNG</strong>, each file <strong>under 1 MB</strong>, with a <strong>transparent background</strong>. Twitch renders emotes on both light and dark chat themes, so a white square behind your art will look broken for half the viewers.</p>
+  </section>
+
+  <section>
+    <h2>How to upload the files to Twitch</h2>
+    <ol>
+      <li>Open your <strong>Creator Dashboard</strong> and go to <code>Viewer Rewards → Emotes</code>.</li>
+      <li>Click <strong>Upload Emote</strong> and pick the tier (subscriber, bit, or follower emote).</li>
+      <li>Select all three files at once — 112, 56 and 28 — in the same dialog.</li>
+      <li>Name the emote using the code viewers will type in chat, then submit for review.</li>
+    </ol>
+    <p>Approval usually takes a few days. Rejections are almost always about transparency, file size, or the art containing text that breaks the emote guidelines.</p>
+  </section>
+
+  <section>
+    <h2>Questions</h2>
+    <details><summary>Does this tool upload my image anywhere?</summary>
+      <p>No. Everything runs in your browser with the canvas API. There is no server, no storage, and no account. You can even load this page, disconnect from the internet, and it still works.</p>
+    </details>
+    <details><summary>Why does my emote look blurry at 112x112?</summary>
+      <p>Because the source was smaller than 112 px and got stretched. Start from at least 112x112, ideally 224x224 or larger, so every output is a downscale instead of an upscale.</p>
+    </details>
+    <details><summary>Can I use a GIF?</summary>
+      <p>Animated emotes need frame-by-frame processing, which this page does not do yet — it takes the first frame of a GIF. Export a static frame for now, or use a dedicated GIF tool for animated ones.</p>
+    </details>
+    <details><summary>What about Discord stickers?</summary>
+      <p>Switch to the Discord tab. Stickers are 320x320, under 512 KB, and also need a transparent background. Same upload, different size.</p>
+    </details>
+    <details><summary>Do I need to keep the same art for all three sizes?</summary>
+      <p>Yes, Twitch treats them as one emote. Some creators redraw the smallest size by hand to keep details readable at 28 px — that is optional, but it does make a visible difference on mobile.</p>
+    </details>
+  </section>
+
+  <footer>
+    Runs entirely offline in your browser. No files are uploaded, stored or logged.
+  </footer>
+</div>
+
+<script>
+(function(){
+  const MODES = {
+    twitch:  { sizes:[[112,'112 x 112 — large'],[56,'56 x 56 — desktop chat'],[28,'28 x 28 — mobile chat']], limit: 1024*1024 },
+    discord: { sizes:[[320,'320 x 320 — sticker']], limit: 512*1024 }
+  };
+  let mode = 'twitch';
+  let current = null;   // {img, name}
+  let blobs = [];       // [{size, blob, url}]
+
+  const $ = (s)=>document.querySelector(s);
+  const drop = $('#drop'), input = $('#file'), grid = $('#grid'),
+        results = $('#results'), note = $('#note'), srcinfo = $('#srcinfo');
+
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+      t.classList.add('on');
+      mode = t.dataset.mode;
+      if (current) render();
+    });
+  });
+
+  drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', ()=> drop.classList.remove('over'));
+  drop.addEventListener('drop', e=>{
+    e.preventDefault(); drop.classList.remove('over');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) load(f);
+  });
+  input.addEventListener('change', e=>{
+    const f = e.target.files && e.target.files[0];
+    if (f) load(f);
+  });
+  $('#again').addEventListener('click', ()=>{ input.value=''; input.click(); });
+  $('#all').addEventListener('click', ()=>{
+    blobs.forEach((b,i)=> setTimeout(()=>{
+      const a = document.createElement('a');
+      a.href = b.url; a.download = b.name; a.click();
+    }, i*350));
+  });
+
+  function load(file){
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+      alert('Please choose a PNG, JPG or WebP image.');
+      return;
+    }
+    const img = new Image();
+    img.onload = ()=>{
+      current = { img, name: file.name.replace(/\.[^.]+$/, '') };
+      render();
+    };
+    img.onerror = ()=> alert('That file could not be read as an image.');
+    img.src = URL.createObjectURL(file);
+  }
+
+  function crop(img, size){
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    const s = Math.min(img.naturalWidth, img.naturalHeight);
+    const sx = (img.naturalWidth - s) / 2;
+    const sy = (img.naturalHeight - s) / 2;
+    ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+    return c;
+  }
+
+  function render(){
+    blobs.forEach(b=> URL.revokeObjectURL(b.url));
+    blobs = [];
+    grid.innerHTML = '';
+    const cfg = MODES[mode];
+    const { img } = current;
+
+    srcinfo.textContent = `Source: ${current.name} — ${img.naturalWidth} x ${img.naturalHeight} px`;
+
+    cfg.sizes.forEach(([size, label])=>{
+      const c = crop(img, size);
+      c.toBlob(blob=>{
+        const url = URL.createObjectURL(blob);
+        const name = `${current.name}-${size}x${size}.png`;
+        blobs.push({ size, blob, url, name });
+
+        const el = document.createElement('div');
+        el.className = 'item card';
+        el.innerHTML = `
+          <div class="prev"><img alt="${size} by ${size} preview" src="${url}"></div>
+          <div class="name">${size} x ${size}</div>
+          <div class="meta">${label.split('—')[1].trim()} · ${(blob.size/1024).toFixed(1)} KB</div>
+          <a class="dl" href="${url}" download="${name}">Download</a>`;
+        grid.appendChild(el);
+        checkLimits(cfg.limit);
+      }, 'image/png');
+    });
+
+    results.classList.add('on');
+    note.innerHTML = '';
+  }
+
+  function checkLimits(limit){
+    if (blobs.length < MODES[mode].sizes.length) return;
+    const over = blobs.filter(b=> b.blob.size > limit);
+    const small = current.img.naturalWidth < Math.max(...MODES[mode].sizes.map(s=>s[0]));
+    let html = '';
+    if (over.length){
+      html += `<div class="note warn">${over.length} file(s) are over the ${(limit/1024/1024).toFixed(1)} MB limit. Simplify the artwork or reduce colour noise, then try again.</div>`;
+    } else {
+      html += `<div class="note ok">All files are under ${(limit/1024/1024).toFixed(1)} MB and have a transparent background. Ready to upload.</div>`;
+    }
+    if (small){
+      html += `<div class="note warn">Your source is smaller than ${Math.max(...MODES[mode].sizes.map(s=>s[0]))} px, so the output was upscaled and may look soft. Start from a larger image if you can.</div>`;
+    }
+    note.innerHTML = html;
+  }
+})();
+</script>
+</body>
+</html>
